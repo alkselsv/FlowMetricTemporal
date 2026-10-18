@@ -1,0 +1,3 @@
+{"episode_id":"venue01_clip001_000120_000240","label":"service","split":"train","video":"/data/venue01/clip001.mp4","tracks":"/data/venue01/tracks.json","start_frame":120,"end_frame":240,"staff_id":"7","customer_id":"12","table_box":[410,280,790,610]}
+{"episode_id":"venue02_clip003_000900_001020","label":"passing","split":"val","video":"/data/venue02/clip003.mp4","tracks":"/data/venue02/tracks.json","start_frame":900,"end_frame":1020,"staff_id":"2","customer_id":"4","table_box":[180,300,530,650]}
+
