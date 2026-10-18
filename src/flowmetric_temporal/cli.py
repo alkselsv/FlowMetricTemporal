@@ -5,6 +5,8 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+from .bootstrap import bootstrap_annotations
+from .end_to_end import run_current_data
 from .extract import build_dataset
 from .infer import predict_manifest
 from .train import train_model
@@ -38,6 +40,38 @@ def parser() -> argparse.ArgumentParser:
     predict.add_argument("--split")
     predict.add_argument("--batch-size", type=int, default=16)
     predict.add_argument("--device", default="auto")
+
+    bootstrap = commands.add_parser(
+        "bootstrap-current",
+        help="create reviewable annotations from the current FlowMetric benchmark",
+    )
+    bootstrap.add_argument("--flowmetric-root", type=Path, required=True)
+    bootstrap.add_argument("--out", type=Path, required=True)
+    bootstrap.add_argument(
+        "--tracks",
+        type=Path,
+        default=Path("data/output/service_verifier_tables_run/tracks.json"),
+        help="tracks.json path relative to FlowMetric root",
+    )
+    bootstrap.add_argument("--max-weak-per-class", type=int, default=6)
+
+    current = commands.add_parser(
+        "current-data",
+        help="bootstrap, extract, train, and predict on the current FlowMetric data",
+    )
+    current.add_argument("--flowmetric-root", type=Path, required=True)
+    current.add_argument("--out", type=Path, required=True)
+    current.add_argument(
+        "--tracks",
+        type=Path,
+        default=Path("data/output/service_verifier_tables_run/tracks.json"),
+    )
+    current.add_argument("--frames", type=int, default=16)
+    current.add_argument("--crop-size", type=int, default=112)
+    current.add_argument("--epochs", type=int, default=30)
+    current.add_argument("--batch-size", type=int, default=8)
+    current.add_argument("--device", default="auto")
+    current.add_argument("--prepare-only", action="store_true")
     return root
 
 
@@ -64,7 +98,7 @@ def main() -> None:
             seed=args.seed,
         )
         print(f"best validation metrics: {metrics}")
-    else:
+    elif args.command == "predict":
         predict_manifest(
             args.manifest,
             args.checkpoint,
@@ -74,8 +108,28 @@ def main() -> None:
             device_name=args.device,
         )
         print(f"wrote {args.out}")
+    elif args.command == "bootstrap-current":
+        result = bootstrap_annotations(
+            args.flowmetric_root,
+            args.out,
+            tracks_relative=args.tracks,
+            max_weak_per_class=args.max_weak_per_class,
+        )
+        print(result)
+    else:
+        result = run_current_data(
+            args.flowmetric_root,
+            args.out,
+            tracks_relative=args.tracks,
+            frames_per_episode=args.frames,
+            crop_size=args.crop_size,
+            epochs=args.epochs,
+            batch_size=args.batch_size,
+            device_name=args.device,
+            prepare_only=args.prepare_only,
+        )
+        print(result)
 
 
 if __name__ == "__main__":
     main()
-
