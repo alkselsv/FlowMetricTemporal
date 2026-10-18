@@ -1,4 +1,4 @@
-"""Training loop with class weighting and macro-F1 checkpoint selection."""
+"""Обучение со взвешиванием классов и выбором точки по макро-F1."""
 
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ def seed_everything(seed: int) -> None:
 
 def classification_metrics(targets: list[int], predictions: list[int]) -> dict[str, float]:
     if len(targets) != len(predictions) or not targets:
-        raise ValueError("metrics require equally sized, non-empty inputs")
+        raise ValueError("для метрик нужны непустые входы одинакового размера")
     f1_scores: list[float] = []
     for label in range(len(EPISODE_LABELS)):
         tp = sum(t == label and p == label for t, p in zip(targets, predictions))
@@ -74,7 +74,7 @@ def train_model(
     config: ModelConfig | None = None,
 ) -> dict[str, float]:
     if epochs <= 0 or batch_size <= 0:
-        raise ValueError("epochs and batch_size must be positive")
+        raise ValueError("epochs и batch_size должны быть положительными")
     seed_everything(seed)
     device = resolve_device(device_name)
     train_data = EpisodeDataset(manifest, split="train")
@@ -115,4 +115,3 @@ def train_model(
             best_metrics = metrics
             torch.save(checkpoint_payload(model, epoch=epoch, metrics=metrics), output)
     return best_metrics
-

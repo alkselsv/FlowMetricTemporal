@@ -1,4 +1,4 @@
-"""Stable labels and feature contract shared by extraction and inference."""
+"""Стабильный контракт меток и признаков для извлечения и предсказания."""
 
 from __future__ import annotations
 
@@ -26,4 +26,3 @@ TRAJECTORY_FEATURES = (
     "customer_vy",
     "joint_visible",
 )
-

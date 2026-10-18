@@ -1,4 +1,4 @@
-"""Bootstrap a reviewable episode dataset from the current FlowMetric benchmark."""
+"""Формирование проверяемого набора эпизодов из контрольных данных FlowMetric."""
 
 from __future__ import annotations
 
@@ -33,14 +33,14 @@ def load_json(path: Path) -> dict[str, Any]:
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
-        raise ValueError(f"cannot read JSON {path}: {exc}") from exc
+        raise ValueError(f"не удалось прочитать JSON {path}: {exc}") from exc
     if not isinstance(payload, dict):
-        raise ValueError(f"{path} must contain a JSON object")
+        raise ValueError(f"{path} должен содержать объект JSON")
     return payload
 
 
 def map_gt_to_tracks(gt: dict[str, Any], tracks: dict[str, Any]) -> dict[int, str]:
-    """Match benchmark head anchors to FlowMetric IDs using the benchmark metric logic."""
+    """Сопоставить опорные точки головы с идентификаторами FlowMetric."""
     fps = float(tracks["fps"])
     by_frame: dict[int, list[tuple[str, list[float], float]]] = {}
     for track_id, track in tracks["tracks"].items():
@@ -111,7 +111,7 @@ def ground_truth_people(gt: dict[str, Any]) -> set[int]:
 
 
 def service_intervals(gt: dict[str, Any]) -> list[dict[str, Any]]:
-    """Pair service starts/ends. Zero-duration censored observations are skipped."""
+    """Объединить начала и окончания обслуживания, пропуская нулевые наблюдения."""
     duration = float(gt["duration_s"])
     active: dict[tuple[int, int], float] = {}
     intervals: list[dict[str, Any]] = []
@@ -235,11 +235,13 @@ def bootstrap_annotations(
     window_seconds: float = 2.5,
     stride_seconds: float = 1.0,
 ) -> dict[str, Any]:
-    """Create train/val annotations from GT positives and auditable weak negatives."""
+    """Создать обучающие и проверочные аннотации из эталонных и слабых меток."""
     root = flowmetric_root.resolve()
     video_candidates = sorted((root / "data").glob("hf_*.mp4"))
     if len(video_candidates) != 1:
-        raise ValueError(f"expected exactly one data/hf_*.mp4, found {len(video_candidates)}")
+        raise ValueError(
+            f"ожидался ровно один файл data/hf_*.mp4, найдено: {len(video_candidates)}"
+        )
     video = video_candidates[0]
     tracks_path = root / tracks_relative
     gt_path = root / "benchmark" / "ground_truth.json"
@@ -280,7 +282,9 @@ def bootstrap_annotations(
             }
         )
     if len(rows) < 2:
-        raise ValueError("at least two mapped ground-truth service intervals are required")
+        raise ValueError(
+            "требуются как минимум два сопоставленных эталонных интервала обслуживания"
+        )
     rows[-1]["split"] = "val"
 
     staff_ids = [mapping[person] for person in gt.get("staff", []) if person in mapping]
@@ -326,7 +330,9 @@ def bootstrap_annotations(
             if len(chosen) == max_weak_per_class:
                 break
         if len(chosen) < 2:
-            raise ValueError(f"could not generate enough weak {label!r} candidates")
+            raise ValueError(
+                f"не удалось сформировать достаточно кандидатов со слабой меткой {label!r}"
+            )
         for index, stats in enumerate(chosen):
             rows.append(
                 {

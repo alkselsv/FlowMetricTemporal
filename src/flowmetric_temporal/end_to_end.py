@@ -1,4 +1,4 @@
-"""One-command bootstrap, extraction, training, and prediction for current data."""
+"""Разметка, извлечение, обучение и предсказание одной командой."""
 
 from __future__ import annotations
 
@@ -65,4 +65,3 @@ def run_current_data(
     report.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     result["report"] = str(report)
     return result
-

@@ -1,4 +1,4 @@
-"""Trajectory interpolation and normalized temporal features."""
+"""Интерполяция траекторий и нормализованные временные признаки."""
 
 from __future__ import annotations
 
@@ -15,11 +15,13 @@ def track_boxes(tracks: dict[str, Any], track_id: str) -> tuple[np.ndarray, np.n
         frames = np.asarray(track["frames"], dtype=np.float32)
         boxes = np.asarray(track["boxes"], dtype=np.float32)
     except (KeyError, TypeError, ValueError) as exc:
-        raise ValueError(f"track {track_id!r} is missing or malformed") from exc
+        raise ValueError(f"трек {track_id!r} отсутствует или имеет неверный формат") from exc
     if frames.ndim != 1 or boxes.shape != (len(frames), 4) or len(frames) == 0:
-        raise ValueError(f"track {track_id!r} has incompatible frames/boxes")
+        raise ValueError(f"трек {track_id!r} содержит несовместимые frames и boxes")
     if np.any(np.diff(frames) <= 0) or not np.isfinite(boxes).all():
-        raise ValueError(f"track {track_id!r} must contain ordered finite observations")
+        raise ValueError(
+            f"трек {track_id!r} должен содержать упорядоченные конечные наблюдения"
+        )
     return frames, boxes
 
 
@@ -30,7 +32,7 @@ def interpolate_boxes(
     *,
     max_gap: float,
 ) -> tuple[np.ndarray, np.ndarray]:
-    """Linearly interpolate boxes and flag targets close enough to observations."""
+    """Интерполировать ограничивающие прямоугольники и отметить наблюдаемые цели."""
     boxes = np.column_stack(
         [np.interp(target_frames, observed_frames, observed_boxes[:, i]) for i in range(4)]
     ).astype(np.float32)
@@ -68,9 +70,11 @@ def trajectory_features(
     frames: np.ndarray,
 ) -> np.ndarray:
     if width <= 0 or height <= 0 or fps <= 0:
-        raise ValueError("width, height, and fps must be positive")
+        raise ValueError("ширина, высота и частота кадров должны быть положительными")
     if staff_boxes.shape != customer_boxes.shape or staff_boxes.shape != (len(frames), 4):
-        raise ValueError("person boxes must have shape [time, 4]")
+        raise ValueError(
+            "ограничивающие прямоугольники людей должны иметь форму [время, 4]"
+        )
     staff = _box_geometry(staff_boxes, width, height)
     customer = _box_geometry(customer_boxes, width, height)
     if table_box is None:
@@ -95,6 +99,5 @@ def trajectory_features(
         [staff, customer, table, delta, distance, staff_velocity, customer_velocity, visible]
     ).astype(np.float32)
     if result.shape[1] != len(TRAJECTORY_FEATURES):
-        raise AssertionError("trajectory feature contract is inconsistent")
+        raise AssertionError("контракт траекторных признаков нарушен")
     return result
-

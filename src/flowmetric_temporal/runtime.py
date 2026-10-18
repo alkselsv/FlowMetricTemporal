@@ -1,4 +1,4 @@
-"""Checkpoint I/O and shared device helpers."""
+"""Чтение и запись контрольных точек, общие средства выбора устройства."""
 
 from __future__ import annotations
 
@@ -22,9 +22,9 @@ def resolve_device(value: str) -> torch.device:
         return torch.device("cpu")
     device = torch.device(value)
     if device.type == "cuda" and not torch.cuda.is_available():
-        raise ValueError("CUDA was requested but is unavailable")
+        raise ValueError("запрошена CUDA, но она недоступна")
     if device.type == "mps" and not torch.backends.mps.is_available():
-        raise ValueError("MPS was requested but is unavailable")
+        raise ValueError("запрошен MPS, но он недоступен")
     return device
 
 
@@ -48,13 +48,14 @@ def checkpoint_payload(
 def load_checkpoint(path: str | Path, device: torch.device) -> tuple[EpisodeClassifier, dict[str, Any]]:
     payload = torch.load(Path(path), map_location=device, weights_only=True)
     if not isinstance(payload, dict) or payload.get("format_version") != CHECKPOINT_VERSION:
-        raise ValueError("unsupported or malformed checkpoint")
+        raise ValueError("контрольная точка повреждена или имеет неподдерживаемый формат")
     if tuple(payload.get("labels", ())) != EPISODE_LABELS:
-        raise ValueError("checkpoint labels do not match runtime labels")
+        raise ValueError("метки контрольной точки не совпадают с метками среды выполнения")
     if tuple(payload.get("trajectory_features", ())) != TRAJECTORY_FEATURES:
-        raise ValueError("checkpoint trajectory features do not match runtime features")
+        raise ValueError(
+            "траекторные признаки контрольной точки не совпадают с признаками среды выполнения"
+        )
     model = EpisodeClassifier(ModelConfig(**payload["model_config"]))
     model.load_state_dict(payload["model_state"])
     model.to(device).eval()
     return model, payload
-

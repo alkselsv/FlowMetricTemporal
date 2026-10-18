@@ -1,4 +1,4 @@
-"""Batch inference for extracted episode manifests."""
+"""Пакетное получение предсказаний для реестров извлечённых эпизодов."""
 
 from __future__ import annotations
 
@@ -52,4 +52,3 @@ def predict_manifest(
                 )
             )
     output.write_text("\n".join(rows) + "\n", encoding="utf-8")
-

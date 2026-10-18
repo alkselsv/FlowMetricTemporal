@@ -1,4 +1,4 @@
-"""Build compact episode tensors from videos, FlowMetric tracks, and annotations."""
+"""Построение компактных тензоров эпизодов из видео, треков и аннотаций."""
 
 from __future__ import annotations
 
@@ -21,16 +21,16 @@ def read_jsonl(path: Path) -> list[dict[str, Any]]:
         try:
             row = json.loads(line)
         except json.JSONDecodeError as exc:
-            raise ValueError(f"{path}:{line_no}: invalid JSON") from exc
+            raise ValueError(f"{path}:{line_no}: некорректный JSON") from exc
         if not isinstance(row, dict):
-            raise ValueError(f"{path}:{line_no}: row must be an object")
+            raise ValueError(f"{path}:{line_no}: строка должна содержать объект")
         rows.append(row)
     return rows
 
 
 def sample_frames(start: int, end: int, count: int) -> np.ndarray:
     if start < 0 or end < start or count < 2:
-        raise ValueError("invalid episode interval or frame count")
+        raise ValueError("некорректный интервал эпизода или число кадров")
     return np.rint(np.linspace(start, end, count)).astype(np.int64)
 
 
@@ -59,14 +59,14 @@ def load_video_frames(path: Path, frame_indices: Iterable[int]) -> dict[int, np.
     requested = sorted(set(int(value) for value in frame_indices))
     cap = cv2.VideoCapture(str(path))
     if not cap.isOpened():
-        raise ValueError(f"cannot open video: {path}")
+        raise ValueError(f"не удалось открыть видео: {path}")
     output: dict[int, np.ndarray] = {}
     try:
         for index in requested:
             cap.set(cv2.CAP_PROP_POS_FRAMES, index)
             ok, frame = cap.read()
             if not ok:
-                raise ValueError(f"cannot read frame {index} from {path}")
+                raise ValueError(f"не удалось прочитать кадр {index} из {path}")
             output[index] = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     finally:
         cap.release()
@@ -82,9 +82,9 @@ def extract_episode(
     required = {"episode_id", "label", "video", "tracks", "start_frame", "end_frame", "staff_id", "customer_id"}
     missing = required - annotation.keys()
     if missing:
-        raise ValueError(f"annotation is missing: {', '.join(sorted(missing))}")
+        raise ValueError(f"в аннотации отсутствуют поля: {', '.join(sorted(missing))}")
     if annotation["label"] not in EPISODE_LABELS:
-        raise ValueError(f"unknown label {annotation['label']!r}")
+        raise ValueError(f"неизвестная метка {annotation['label']!r}")
     tracks_path = Path(annotation["tracks"])
     tracks = json.loads(tracks_path.read_text(encoding="utf-8"))
     fps = float(tracks["fps"])
@@ -99,7 +99,7 @@ def extract_episode(
     table_box = annotation.get("table_box")
     table = None if table_box is None else np.asarray(table_box, dtype=np.float32)
     if table is not None and (table.shape != (4,) or table[0] >= table[2] or table[1] >= table[3]):
-        raise ValueError("table_box must be ordered xyxy coordinates")
+        raise ValueError("table_box должен содержать упорядоченные координаты xyxy")
     video_frames = load_video_frames(Path(annotation["video"]), indices)
     staff_crops = []
     customer_crops = []
@@ -142,7 +142,9 @@ def build_dataset(
     for row in read_jsonl(annotations_path):
         episode_id = str(row.get("episode_id", "")).strip()
         if not episode_id or episode_id in seen or "/" in episode_id or "\\" in episode_id:
-            raise ValueError(f"episode_id must be unique and filename-safe: {episode_id!r}")
+            raise ValueError(
+                f"episode_id должен быть уникальным и пригодным для имени файла: {episode_id!r}"
+            )
         seen.add(episode_id)
         arrays = extract_episode(row, frames_per_episode=frames_per_episode, crop_size=crop_size)
         filename = f"{episode_id}.npz"
@@ -160,4 +162,3 @@ def build_dataset(
         )
     manifest_path.write_text("\n".join(manifest_rows) + "\n", encoding="utf-8")
     return manifest_path
-

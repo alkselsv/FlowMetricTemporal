@@ -1,4 +1,4 @@
-"""Shared visual encoder plus trajectory-aware temporal Transformer."""
+"""Общий визуальный кодировщик и временной трансформер с учётом траекторий."""
 
 from __future__ import annotations
 
@@ -54,7 +54,7 @@ class EpisodeClassifier(nn.Module):
         self.config = config or ModelConfig()
         cfg = self.config
         if cfg.hidden_dim % cfg.heads:
-            raise ValueError("hidden_dim must be divisible by heads")
+            raise ValueError("hidden_dim должен делиться на heads")
         self.crop_encoder = CropEncoder(cfg.visual_dim)
         self.trajectory_encoder = nn.Sequential(
             nn.Linear(len(TRAJECTORY_FEATURES), cfg.trajectory_dim),
@@ -63,7 +63,7 @@ class EpisodeClassifier(nn.Module):
         )
         fused_dim = 3 * cfg.visual_dim + cfg.trajectory_dim
         if fused_dim != cfg.hidden_dim:
-            raise ValueError("hidden_dim must equal 3 * visual_dim + trajectory_dim")
+            raise ValueError("hidden_dim должен быть равен 3 * visual_dim + trajectory_dim")
         self.position = nn.Parameter(torch.empty(1, cfg.max_frames, cfg.hidden_dim))
         nn.init.trunc_normal_(self.position, std=0.02)
         layer = nn.TransformerEncoderLayer(
@@ -88,11 +88,13 @@ class EpisodeClassifier(nn.Module):
     ) -> torch.Tensor:
         time = staff.shape[1]
         if time > self.config.max_frames:
-            raise ValueError(f"episode has {time} frames; maximum is {self.config.max_frames}")
+            raise ValueError(
+                f"эпизод содержит {time} кадров; допустимый максимум: {self.config.max_frames}"
+            )
         if mask.dtype != torch.bool or mask.shape != staff.shape[:2]:
-            raise ValueError("mask must be bool [batch, time]")
+            raise ValueError("маска должна иметь тип bool и форму [пакет, время]")
         if not torch.all(mask.any(dim=1)):
-            raise ValueError("each episode must contain at least one valid frame")
+            raise ValueError("каждый эпизод должен содержать хотя бы один допустимый кадр")
         fused = torch.cat(
             [
                 self.crop_encoder(staff),
@@ -106,4 +108,3 @@ class EpisodeClassifier(nn.Module):
         weights = mask.unsqueeze(-1).to(encoded.dtype)
         pooled = (encoded * weights).sum(dim=1) / weights.sum(dim=1).clamp_min(1)
         return self.head(pooled)
-

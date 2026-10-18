@@ -1,4 +1,4 @@
-"""Command-line entry point."""
+"""Точка входа командной строки."""
 
 from __future__ import annotations
 
@@ -16,13 +16,15 @@ def parser() -> argparse.ArgumentParser:
     root = argparse.ArgumentParser(prog="flowmetric-temporal")
     commands = root.add_subparsers(dest="command", required=True)
 
-    extract = commands.add_parser("extract", help="create episode tensors from annotation JSONL")
+    extract = commands.add_parser(
+        "extract", help="создать тензоры эпизодов из JSONL с аннотациями"
+    )
     extract.add_argument("--annotations", type=Path, required=True)
     extract.add_argument("--out", type=Path, required=True)
     extract.add_argument("--frames", type=int, default=16)
     extract.add_argument("--crop-size", type=int, default=112)
 
-    train = commands.add_parser("train", help="train the temporal classifier")
+    train = commands.add_parser("train", help="обучить временной классификатор")
     train.add_argument("--manifest", type=Path, required=True)
     train.add_argument("--out", type=Path, required=True)
     train.add_argument("--epochs", type=int, default=30)
@@ -33,7 +35,7 @@ def parser() -> argparse.ArgumentParser:
     train.add_argument("--workers", type=int, default=0)
     train.add_argument("--seed", type=int, default=17)
 
-    predict = commands.add_parser("predict", help="classify extracted episodes")
+    predict = commands.add_parser("predict", help="классифицировать извлечённые эпизоды")
     predict.add_argument("--manifest", type=Path, required=True)
     predict.add_argument("--checkpoint", type=Path, required=True)
     predict.add_argument("--out", type=Path, required=True)
@@ -43,7 +45,7 @@ def parser() -> argparse.ArgumentParser:
 
     bootstrap = commands.add_parser(
         "bootstrap-current",
-        help="create reviewable annotations from the current FlowMetric benchmark",
+        help="создать проверяемые аннотации из контрольного набора FlowMetric",
     )
     bootstrap.add_argument("--flowmetric-root", type=Path, required=True)
     bootstrap.add_argument("--out", type=Path, required=True)
@@ -51,13 +53,13 @@ def parser() -> argparse.ArgumentParser:
         "--tracks",
         type=Path,
         default=Path("data/output/service_verifier_tables_run/tracks.json"),
-        help="tracks.json path relative to FlowMetric root",
+        help="путь к tracks.json относительно корня FlowMetric",
     )
     bootstrap.add_argument("--max-weak-per-class", type=int, default=6)
 
     current = commands.add_parser(
         "current-data",
-        help="bootstrap, extract, train, and predict on the current FlowMetric data",
+        help="разметить данные FlowMetric, извлечь признаки, обучить модель и получить предсказания",
     )
     current.add_argument("--flowmetric-root", type=Path, required=True)
     current.add_argument("--out", type=Path, required=True)
@@ -84,7 +86,7 @@ def main() -> None:
             frames_per_episode=args.frames,
             crop_size=args.crop_size,
         )
-        print(f"wrote {path}")
+        print(f"записано: {path}")
     elif args.command == "train":
         metrics = train_model(
             args.manifest,
@@ -97,7 +99,7 @@ def main() -> None:
             workers=args.workers,
             seed=args.seed,
         )
-        print(f"best validation metrics: {metrics}")
+        print(f"лучшие метрики на проверочной выборке: {metrics}")
     elif args.command == "predict":
         predict_manifest(
             args.manifest,
@@ -107,7 +109,7 @@ def main() -> None:
             batch_size=args.batch_size,
             device_name=args.device,
         )
-        print(f"wrote {args.out}")
+        print(f"записано: {args.out}")
     elif args.command == "bootstrap-current":
         result = bootstrap_annotations(
             args.flowmetric_root,
